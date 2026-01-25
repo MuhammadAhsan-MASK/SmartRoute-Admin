@@ -1,14 +1,6 @@
 // Firebase Configuration
-// Connected to the same Firebase project as your Flutter locationdemo app
-const firebaseConfig = {
-    apiKey: "AIzaSyCQWtiNZrZe0ojJUR6exwAulivKPOyyNkU",
-    authDomain: "locationapp-ebf35.firebaseapp.com",
-    projectId: "locationapp-ebf35",
-    storageBucket: "locationapp-ebf35.firebasestorage.app",
-    messagingSenderId: "407572452605",
-    appId: "1:407572452605:web:467255526bb8d266f49a94",
-    databaseURL: "https://locationapp-ebf35-default-rtdb.firebaseio.com"
-};
+// Uses the configuration from js/config.js (not version controlled)
+const firebaseConfig = window.API_CONFIG;
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
