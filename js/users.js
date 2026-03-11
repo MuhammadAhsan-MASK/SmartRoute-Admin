@@ -100,27 +100,35 @@ function displayUsers() {
                 <tr>
                     <th>Email</th>
                     <th>Gender</th>
-                    <th>Travel Type</th>
+                    <th>Travel Mode</th>
+                    <th>Companion</th>
                     <th>Last Active</th>
-                    <th>Join Date</th>
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="usersTableBody">
     `;
 
     filteredUsers.forEach((user) => {
         const genderBadge = user.gender === 'Female' ? 'badge-danger' : 'badge-info';
-        const travelBadge = user.travelType === 'Alone' ? 'badge-warning' : 'badge-success';
+
+        // Calculate Status
+        const now = new Date();
+        const lastActiveDate = user.lastActive ? (user.lastActive.toDate ? user.lastActive.toDate() : new Date(user.lastActive)) : null;
+        const diffMinutes = lastActiveDate ? Math.floor((now - lastActiveDate) / 60000) : 999999;
+        const isOnline = diffMinutes < 5; // Consider online if active in last 5 mins
+
+        const statusBadge = isOnline ? 'badge-success' : 'badge-warning';
+        const statusText = isOnline ? 'Online' : 'Offline';
 
         tableHTML += `
-            <tr>
+            <tr class="user-row" data-user-id="${user.id}">
                 <td>${user.email || 'N/A'}</td>
                 <td><span class="badge ${genderBadge}">${user.gender || 'N/A'}</span></td>
-                <td><span class="badge ${travelBadge}">${user.travelType || 'N/A'}</span></td>
+                <td>${user.travelMode || 'N/A'}</td>
+                <td>${user.travelType || 'Alone'}</td>
                 <td>${formatTimestamp(user.lastActive)}</td>
-                <td>${formatDate(user.createdAt)}</td>
-                <td><span class="badge badge-success">Active</span></td>
+                <td><span class="badge ${statusBadge}">${statusText}</span></td>
             </tr>
         `;
     });
@@ -131,6 +139,19 @@ function displayUsers() {
     `;
 
     container.innerHTML = tableHTML;
+
+    // Add click event listeners to all user rows using event delegation
+    const tableBody = document.getElementById('usersTableBody');
+    if (tableBody) {
+        tableBody.addEventListener('click', (e) => {
+            const row = e.target.closest('.user-row');
+            if (row) {
+                const userId = row.getAttribute('data-user-id');
+                console.log('Clicked user row with ID:', userId);
+                showUserProfile(userId);
+            }
+        });
+    }
 }
 
 // Show empty state
@@ -198,3 +219,85 @@ function formatDate(timestamp) {
         day: 'numeric'
     });
 }
+
+// Show user profile modal
+function showUserProfile(userId) {
+    console.log('showUserProfile called with userId:', userId);
+    console.log('All users:', allUsers);
+
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        console.error('User not found:', userId);
+        console.error('Available user IDs:', allUsers.map(u => u.id));
+        return;
+    }
+
+    console.log('Found user:', user);
+
+    // Populate modal with user data
+    const modal = document.getElementById('userProfileModal');
+    if (!modal) {
+        console.error('Modal element not found!');
+        return;
+    }
+
+    console.log('Modal element found:', modal);
+
+    // User name and email
+    const userName = user.name || user.email?.split('@')[0] || 'Unknown User';
+    document.getElementById('modalUserName').textContent = userName;
+    document.getElementById('modalUserEmail').textContent = user.email || 'N/A';
+
+    // Gender
+    const genderBadge = user.gender === 'Female' ? 'badge-danger' : 'badge-info';
+    document.getElementById('modalUserGender').innerHTML =
+        `<span class="badge ${genderBadge}">${user.gender || 'N/A'}</span>`;
+
+    // Travel mode and companion
+    document.getElementById('modalUserTravelMode').textContent = user.travelMode || 'N/A';
+    document.getElementById('modalUserCompanion').textContent = user.travelType || 'N/A';
+
+    // Account created
+    document.getElementById('modalUserCreated').textContent = formatDate(user.createdAt);
+
+    // Last active
+    document.getElementById('modalUserLastActive').textContent = formatTimestamp(user.lastActive);
+
+    // Status
+    const now = new Date();
+    const lastActiveDate = user.lastActive ? (user.lastActive.toDate ? user.lastActive.toDate() : new Date(user.lastActive)) : null;
+    const diffMinutes = lastActiveDate ? Math.floor((now - lastActiveDate) / 60000) : 999999;
+    const isOnline = diffMinutes < 5;
+
+    const statusBadge = isOnline ? 'badge-success' : 'badge-warning';
+    const statusText = isOnline ? 'Online' : 'Offline';
+    document.getElementById('modalUserStatus').innerHTML =
+        `<span class="badge ${statusBadge}">${statusText}</span>`;
+
+    console.log('About to show modal...');
+    // Show modal with animation
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    console.log('Modal should now be visible. Modal classes:', modal.className);
+}
+
+// Close user profile modal
+function closeUserModal() {
+    const modal = document.getElementById('userProfileModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeUserModal();
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('userProfileModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'userProfileModal') {
+        closeUserModal();
+    }
+});

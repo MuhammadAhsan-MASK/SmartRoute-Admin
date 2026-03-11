@@ -187,6 +187,8 @@ async function loadRecentActivity() {
                 <thead>
                     <tr>
                         <th>User</th>
+                        <th>Gender</th>
+                        <th>Companion</th>
                         <th>Type</th>
                         <th>From</th>
                         <th>To</th>
@@ -201,9 +203,11 @@ async function loadRecentActivity() {
             tableHTML += `
                 <tr>
                     <td>${data.userEmail || 'Anonymous'}</td>
+                    <td><span class="badge ${data.gender === 'Female' ? 'badge-danger' : 'badge-info'}">${data.gender || 'N/A'}</span></td>
+                    <td>${data.travel || 'Alone'}</td>
                     <td><span class="badge badge-info">${data.routeType || 'Safe'}</span></td>
-                    <td>${data.pickupLocation || 'N/A'}</td>
-                    <td>${data.dropoffLocation || 'N/A'}</td>
+                    <td>${truncateLocation(data.pickupLocation)}</td>
+                    <td>${truncateLocation(data.dropoffLocation)}</td>
                     <td><span class="badge badge-success">Completed</span></td>
                     <td>${formatTimestamp(data.timestamp)}</td>
                 </tr>
@@ -251,4 +255,9 @@ function refreshData() {
     setTimeout(() => {
         icon.classList.remove('fa-spin');
     }, 1000);
+}
+
+function truncateLocation(text) {
+    if (!text) return 'N/A';
+    return text.length > 15 ? text.substring(0, 15) + '...' : text;
 }

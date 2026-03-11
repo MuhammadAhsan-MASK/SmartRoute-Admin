@@ -69,32 +69,78 @@ function getErrorMessage(errorCode) {
     }
 }
 
-// Check if user is already logged in
+// Check if user is already logged in and redirect to dashboard
 auth.onAuthStateChanged((user) => {
-    if (user && window.location.pathname.includes('index.html')) {
+    const isLoginPage = window.location.pathname.includes('index.html') ||
+        window.location.pathname.endsWith('/');
+
+    if (user && isLoginPage) {
+        // User is logged in and on login page, redirect to dashboard
         window.location.href = 'dashboard.html';
+    } else if (!user && !isLoginPage) {
+        // User is not logged in and trying to access dashboard, redirect to login
+        window.location.href = 'index.html';
+    } else if (user && !isLoginPage) {
+        // User is logged in and on a dashboard page, update admin info
+        updateAdminInfo(user);
     }
 });
 
-// Logout functionality
-function logout() {
-    auth.signOut().then(() => {
-        window.location.href = 'index.html';
-    }).catch((error) => {
-        console.error('Logout error:', error);
-    });
+// Update admin information in the UI
+function updateAdminInfo(user) {
+    const adminEmail = document.getElementById('adminEmail');
+    const adminName = document.getElementById('adminName');
+
+    if (adminEmail && user) {
+        adminEmail.textContent = user.email;
+    }
+
+    if (adminName && user) {
+        // Extract name from email (before @)
+        const name = user.email.split('@')[0];
+        adminName.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    }
 }
 
-// Protect dashboard pages
-function protectPage() {
-    auth.onAuthStateChanged((user) => {
-        if (!user && !window.location.pathname.includes('index.html')) {
+// Logout functionality
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        auth.signOut().then(() => {
+            // Clear any cached data
+            sessionStorage.clear();
+            localStorage.removeItem('rememberMe');
             window.location.href = 'index.html';
-        }
+        }).catch((error) => {
+            console.error('Logout error:', error);
+            alert('Error logging out. Please try again.');
+        });
+    }
+}
+
+// Protect dashboard pages - this is called immediately on page load
+function protectPage() {
+    return new Promise((resolve, reject) => {
+        auth.onAuthStateChanged((user) => {
+            const isLoginPage = window.location.pathname.includes('index.html') ||
+                window.location.pathname.endsWith('/');
+
+            if (!user && !isLoginPage) {
+                // Not authenticated and not on login page
+                window.location.href = 'index.html';
+                reject('Not authenticated');
+            } else {
+                resolve(user);
+            }
+        });
     });
 }
 
 // Call protectPage on dashboard pages
-if (!window.location.pathname.includes('index.html')) {
-    protectPage();
+const isLoginPage = window.location.pathname.includes('index.html') ||
+    window.location.pathname.endsWith('/');
+
+if (!isLoginPage) {
+    protectPage().catch(() => {
+        console.log('Redirecting to login...');
+    });
 }

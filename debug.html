@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - SafeRoute Admin</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0A192F;
+            color: #E6E6E6;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #4FACFE;
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            background: #112240;
+            border: 1px solid rgba(79, 172, 254, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section h2 {
+            color: #4FACFE;
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        .status.success {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4FACFE;
+        }
+
+        .status.error {
+            background: rgba(245, 87, 108, 0.2);
+            color: #f5576c;
+        }
+
+        .status.warning {
+            background: rgba(254, 225, 64, 0.2);
+            color: #fee140;
+        }
+
+        pre {
+            background: #0A192F;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(79, 172, 254, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #112240 0%, #2F5FA6 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .loading {
+            color: #fee140;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 SafeRoute Admin - Debug Console</h1>
+
+        <div class="section">
+            <h2>1. Firebase Connection Status</h2>
+            <div id="firebaseStatus" class="loading">⏳ Checking Firebase connection...</div>
+        </div>
+
+        <div class="section">
+            <h2>2. Authentication Status</h2>
+            <div id="authStatus" class="loading">⏳ Checking authentication...</div>
+            <div id="authDetails"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. Database Access</h2>
+            <button onclick="testDatabaseRead()">Test Database Read</button>
+            <button onclick="fetchUsers()">Fetch Users</button>
+            <div id="databaseStatus"></div>
+            <pre id="databaseData"></pre>
+        </div>
+
+        <div class="section">
+            <h2>4. User Data</h2>
+            <div id="userCount" class="loading">⏳ Loading user count...</div>
+            <pre id="userData"></pre>
+        </div>
+
+        <div class="section">
+            <h2>5. Quick Actions</h2>
+            <button onclick="window.location.href='index.html'">Go to Login</button>
+            <button onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
+            <button onclick="window.location.href='users.html'">Go to Users Page</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Config -->
+    <script src="js/config.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // Check Firebase initialization
+        setTimeout(() => {
+            const firebaseStatusEl = document.getElementById('firebaseStatus');
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                firebaseStatusEl.innerHTML = '<div class="status success">✅ Firebase initialized successfully</div>';
+                firebaseStatusEl.innerHTML += `<div>Project ID: ${firebase.app().options.projectId}</div>`;
+                firebaseStatusEl.innerHTML += `<div>Database URL: ${firebase.app().options.databaseURL}</div>`;
+            } else {
+                firebaseStatusEl.innerHTML = '<div class="status error">❌ Firebase not initialized</div>';
+            }
+        }, 500);
+
+        // Check authentication
+        auth.onAuthStateChanged((user) => {
+            const authStatusEl = document.getElementById('authStatus');
+            const authDetailsEl = document.getElementById('authDetails');
+
+            if (user) {
+                authStatusEl.innerHTML = '<div class="status success">✅ User is authenticated</div>';
+                authDetailsEl.innerHTML = `
+                    <div style="margin-top: 1rem;">
+                        <strong>Email:</strong> ${user.email}<br>
+                        <strong>UID:</strong> ${user.uid}<br>
+                        <strong>Email Verified:</strong> ${user.emailVerified}
+                    </div>
+                `;
+            } else {
+                authStatusEl.innerHTML = '<div class="status error">❌ User is NOT authenticated</div>';
+                authDetailsEl.innerHTML = '<div style="margin-top: 1rem;">Please <a href="index.html" style="color: #4FACFE;">login</a> to access user data.</div>';
+            }
+        });
+
+        // Test database read
+        async function testDatabaseRead() {
+            const statusEl = document.getElementById('databaseStatus');
+            statusEl.innerHTML = '<div class="loading">⏳ Testing database connection...</div>';
+
+            try {
+                const testRef = database.ref('.info/connected');
+                const snapshot = await testRef.once('value');
+                const connected = snapshot.val();
+
+                if (connected) {
+                    statusEl.innerHTML = '<div class="status success">✅ Database connection successful</div>';
+                } else {
+                    statusEl.innerHTML = '<div class="status warning">⚠️ Database connection status: disconnected</div>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<div class="status error">❌ Database error: ${error.message}</div>`;
+                console.error('Database test error:', error);
+            }
+        }
+
+        // Fetch users
+        async function fetchUsers() {
+            const statusEl = document.getElementById('databaseStatus');
+            const dataEl = document.getElementById('databaseData');
+            const countEl = document.getElementById('userCount');
+
+            statusEl.innerHTML = '<div class="loading">⏳ Fetching users from database...</div>';
+            dataEl.textContent = '';
+
+            try {
+                const usersRef = database.ref('users');
+                const snapshot = await usersRef.once('value');
+                const usersData = snapshot.val();
+
+                if (usersData) {
+                    const userCount = Object.keys(usersData).length;
+                    statusEl.innerHTML = `<div class="status success">✅ Successfully fetched ${userCount} users</div>`;
+                    countEl.innerHTML = `<div class="status success">Total Users: ${userCount}</div>`;
+                    dataEl.textContent = JSON.stringify(usersData, null, 2);
+                } else {
+                    statusEl.innerHTML = '<div class="status warning">⚠️ No users found in database</div>';
+                    countEl.innerHTML = '<div class="status warning">Total Users: 0</div>';
+                    dataEl.textContent = 'No user data available. The /users node is empty.';
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<div class="status error">❌ Error fetching users: ${error.message}</div>`;
+                countEl.innerHTML = '<div class="status error">Error loading user count</div>';
+                dataEl.textContent = `Error: ${error.message}\n\n${error.stack}`;
+                console.error('Fetch users error:', error);
+            }
+        }
+
+        // Auto-fetch users on load
+        setTimeout(() => {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    fetchUsers();
+                } else {
+                    document.getElementById('userCount').innerHTML = '<div class="status warning">⚠️ Please login to view users</div>';
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+
+</html>
